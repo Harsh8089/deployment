@@ -9,7 +9,7 @@ const app = express();
 
 app.use(express.json());
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: "http://ec2-18-234-95-174.compute-1.amazonaws.com",
   credentials: true
 }));
 app.use(cookieParser());
@@ -41,15 +41,17 @@ const auth = (req: any, res: any, next: NextFunction) => {
   }
 };
 
-app.get("/health-check", (req, res) => {
+const router = express.Router();
+
+router.get("/health-check", (req, res) => {
   return res.status(200).send("OK");
 });
 
-app.get("/auth/me", auth, (req, res) => {
+router.get("/auth/me", auth, (req, res) => {
   res.json((req as any).user);
 })
 
-app.post("/register", (req, res) => {
+router.post("/register", (req, res) => {
   const { username, password } = req.body as { username: string, password: string };
 
   if(!username || !password) {
@@ -73,7 +75,7 @@ app.post("/register", (req, res) => {
   })
 });
 
-app.post("/login", (req, res) => {
+router.post("/login", (req, res) => {
   const { username, password } = req.body as { username: string, password: string };
 
   if(!username || !password) {
@@ -98,7 +100,7 @@ app.post("/login", (req, res) => {
   });
 });
 
-app.post("/todo", auth, (req: any, res: any) => {
+router.post("/todo", auth, (req: any, res: any) => {
   const user = req.user;
 
   if(!user) {
@@ -131,7 +133,7 @@ app.post("/todo", auth, (req: any, res: any) => {
   })
 });
 
-app.get("/todos", auth, (req, res) => {
+router.get("/todos", auth, (req, res) => {
   const user = (req as any).user;
 
   if(!user) {
@@ -154,7 +156,7 @@ app.get("/todos", auth, (req, res) => {
   });
 });
 
-app.patch("/todo/:id", auth, (req, res) => {
+router.patch("/todo/:id", auth, (req, res) => {
   const user = (req as any).user;
 
   if(!user) {
@@ -201,6 +203,8 @@ app.patch("/todo/:id", auth, (req, res) => {
 
   todos[id] = todo;
 });
+
+app.use("/api", router);
 
 const PORT = 3000;
 

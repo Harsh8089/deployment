@@ -19,7 +19,7 @@ export const Login: FC<{ setIsAuth: (val: boolean) => void }> = ({ setIsAuth }) 
       setLoading(true);
       setError("");
 
-      const res = await fetch("http://localhost:3000/login", {
+      const res = await fetch("/api/login", {
         method: "POST",
         body: JSON.stringify({ username, password }),
         credentials: "include",

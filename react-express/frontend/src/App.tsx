@@ -15,7 +15,7 @@ export const App = () => {
   const [isAuth, setIsAuth] = useState<"loading" | "ok" | "fail">("loading");
 
   useEffect(() => {
-    fetch("http://localhost:3000/auth/me", {
+    fetch("/api/auth/me", {
       credentials: "include",
     })
       .then((res) => {
