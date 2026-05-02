@@ -202,12 +202,6 @@ app.patch("/todo/:id", auth, (req, res) => {
   todos[id] = todo;
 });
 
-app.use((_, req, res: any) => {
-  res.status(500).json({
-    message: 'Internal server error',
-  });
-})
-
 const PORT = 3000;
 
 app.listen(PORT, () => {
