@@ -15,7 +15,7 @@ export const Todo: FC<{ setIsAuth: (val: boolean) => void }> = ({ setIsAuth }) =
   const [editDescription, setEditDescription] = useState("");
 
   const fetchTodos = async () => {
-    const res = await fetch("/api/todos", {
+    const res = await fetch("http://localhost:3000/api/todos", {
       credentials: "include",
     });
     const data = await res.json();
@@ -29,7 +29,7 @@ export const Todo: FC<{ setIsAuth: (val: boolean) => void }> = ({ setIsAuth }) =
   const handleCreate = async () => {
     if (!title) return;
 
-    await fetch("/api/todo", {
+    await fetch("http://localhost:3000/api/todo", {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
@@ -42,7 +42,7 @@ export const Todo: FC<{ setIsAuth: (val: boolean) => void }> = ({ setIsAuth }) =
   };
 
   const handleUpdate = async (id: number) => {
-    await fetch(`/api/todo/${id}`, {
+    await fetch(`http://localhost:3000/api/todo/${id}`, {
       method: "PATCH",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
@@ -54,7 +54,7 @@ export const Todo: FC<{ setIsAuth: (val: boolean) => void }> = ({ setIsAuth }) =
   };
 
   const handleLogout = async () => {
-    await fetch("/api/logout", {
+    await fetch("http://localhost:3000/api/logout", {
       method: "POST",
       credentials: "include",
     });

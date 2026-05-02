@@ -19,7 +19,7 @@ export const Register: FC = () => {
       setLoading(true);
       setError("");
 
-      const res = await fetch("/api/register", {
+      const res = await fetch("http://localhost:3000/api/register", {
         method: "POST",
         body: JSON.stringify({ username, password }),
         credentials: "include",

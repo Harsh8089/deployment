@@ -4,6 +4,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
+    "build": "tsc -b",
     "start": "tsc -b && node dist/server.js",
     "dev": "tsx watch src/server.ts"
   },

@@ -9,7 +9,7 @@ const app = express();
 
 app.use(express.json());
 app.use(cors({
-  origin: "http://ec2-18-234-95-174.compute-1.amazonaws.com",
+  origin: "http://localhost:5173",
   credentials: true
 }));
 app.use(cookieParser());

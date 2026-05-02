@@ -15,7 +15,7 @@ export const App = () => {
   const [isAuth, setIsAuth] = useState<"loading" | "ok" | "fail">("loading");
 
   useEffect(() => {
-    fetch("/api/auth/me", {
+    fetch("http://localhost:3000/api/auth/me", {
       credentials: "include",
     })
       .then((res) => {
@@ -26,7 +26,7 @@ export const App = () => {
   }, []);
 
   if (isAuth === "loading") {
-    return <div>Loading...</div>;
+    return <div>Loading...</div>; 
   }
 
   const authenticated = isAuth === "ok";
