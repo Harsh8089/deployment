@@ -1,0 +1,8 @@
+{
+  "name": "react-express",
+  "scripts": {
+    "dev:be": "cd backend && pnpm run dev",
+    "dev:fe": "cd frontend && pnpm run dev",
+    "dev": "npm run dev:be & npm run dev:fe"
+  }
+}
