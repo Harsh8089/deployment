@@ -1,10 +1,46 @@
 services:
-  backend:
-    build: ./backend
+  db:
+    image: postgres
+    env_file: .env
+    environment:
+      - POSTGRES_USER=$POSTGRES_USER
+      - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+      - POSTGRES_DB=$POSTGRES_DB
     ports:
-      - "3000:3000"
+      - $POSTGRESDB_LOCAL_PORT:$POSTGRESDB_DOCKER_PORT
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+
+  backend:
+    depends_on:
+      db:
+        condition: service_healthy
+    build: ./backend
+    env_file: .env
+    environment:
+      - PORT=$NODE_LOCAL_PORT
+      - DATABASE_URL=$DATABASE_URL
+      - JWT_SECRET=$JWT_SECRET
+    ports:
+      - $NODE_LOCAL_PORT:$NODE_DOCKER_PORT
+    networks:
+      - app-network
 
   frontend:
     build: ./frontend
     ports:
-      - "5173:5173"
+      - $VITE_LOCAL_PORT:$VITE_DOCKER_PORT
+
+volumes:
+  postgres-data:
+
+networks:
+  app-network:
+    driver: bridge

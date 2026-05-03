@@ -1,24 +1,24 @@
+import "dotenv/config";
 import express, { type NextFunction } from "express";
 import cors from "cors";
 import jwt, { type JwtPayload } from "jsonwebtoken";
 import cookieParser from "cookie-parser";
+import { PrismaClient } from "./generated/prisma/client.js";
 
-const JWT_SECRET = "secret123#";
+const JWT_SECRET = process.env.JWT_SECRET!;
 
 const app = express();
 
-app.use(express.json());
 app.use(cors({
   origin: "http://localhost:5173",
   credentials: true
 }));
+app.use(express.json());
 app.use(cookieParser());
 
-const users: { id: number; username: string; password: string; }[] = [];
+const prisma = new PrismaClient();
 
-const todos: { id: number; title: string; description: string; userId: number; }[] = [];
-
-const auth = (req: any, res: any, next: NextFunction) => {
+const auth = async (req: any, res: any, next: NextFunction) => {
   const token = req.cookies?.token;
 
   if (!token) {
@@ -28,7 +28,12 @@ const auth = (req: any, res: any, next: NextFunction) => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
 
-    const userDb = users.find(u => u.id === decoded.id);
+    const userDb = await prisma.user.findUnique({
+      where: {
+        id: decoded.id
+      }
+    })
+
     if (!userDb) {
       res.clearCookie('token');
       return res.status(401).json({ message: "User no longer exists" });
@@ -43,7 +48,7 @@ const auth = (req: any, res: any, next: NextFunction) => {
 
 const router = express.Router();
 
-router.get("/health-check", (req, res) => {
+router.get("/health-check", (_, res) => {
   return res.status(200).send("OK");
 });
 
@@ -51,7 +56,7 @@ router.get("/auth/me", auth, (req, res) => {
   res.json((req as any).user);
 })
 
-router.post("/register", (req, res) => {
+router.post("/register", async (req, res) => {
   const { username, password } = req.body as { username: string, password: string };
 
   if(!username || !password) {
@@ -60,14 +65,21 @@ router.post("/register", (req, res) => {
     });
   }
 
-  const userDb = users.find(u => u.username === username);
+  const userDb = await prisma.user.findUnique({
+    where: {
+      username
+    }
+  })
+
   if(userDb) {
     return res.status(404).json({
       message: "Username already exists"
     });
   }
 
-  users.push({ id: users.length, username, password });
+  await prisma.user.create({
+    data: { username, password }
+  });
 
   return res.status(200).json({
     username,
@@ -75,7 +87,7 @@ router.post("/register", (req, res) => {
   })
 });
 
-router.post("/login", (req, res) => {
+router.post("/login", async (req, res) => {
   const { username, password } = req.body as { username: string, password: string };
 
   if(!username || !password) {
@@ -84,7 +96,10 @@ router.post("/login", (req, res) => {
     });
   }
 
-  const userDb = users.find(u => u.username === username && u.password === password);
+  const userDb = await prisma.user.findFirst({
+    where: { username, password }
+  });
+
   if(!userDb) {
     return res.status(404).json({
       message: "User doesn't exist"
@@ -100,22 +115,8 @@ router.post("/login", (req, res) => {
   });
 });
 
-router.post("/todo", auth, (req: any, res: any) => {
+router.post("/todo", auth, async (req: any, res: any) => {
   const user = req.user;
-
-  if(!user) {
-    return res.status(400).json({
-      message: "You need to login"
-    });
-  };
-
-  const userDb = users.find(u => u.id === user.id);
-  if(!userDb) {
-    return res.status(404).json({
-      message: "No user found"
-    });
-  }
-  
   const { title, description } = req.body as { title: string, description: string };
   if(!title) {
     return res.status(404).json({
@@ -123,9 +124,13 @@ router.post("/todo", auth, (req: any, res: any) => {
     });
   }
 
-  const todo = { id: todos.length, title, description, userId: userDb.id };
-
-  todos.push(todo);
+  const todo = await prisma.todo.create({
+    data: {
+      title,
+      description,
+      userId: user.id
+    }
+  });
 
   return res.status(200).json({
     message: "Todo published",
@@ -133,45 +138,17 @@ router.post("/todo", auth, (req: any, res: any) => {
   })
 });
 
-router.get("/todos", auth, (req, res) => {
-  const user = (req as any).user;
+router.get("/todos", auth, async (req: any, res) => {
+  const user = req.user;
 
-  if(!user) {
-    return res.status(400).json({
-      message: "You need to login"
-    });
-  };
-
-  const userDb = users.find(u => u.id === user.id);
-  if(!userDb) {
-    return res.status(404).json({
-      message: "No user found"
-    });
-  }
-
-  const todosDb = todos.filter(t => t.userId === userDb.id);
-  
-  return res.status(200).json({
-    todos: todosDb
+  const todos = await prisma.todo.findMany({
+    where: { userId: user.id }
   });
+
+  res.json({ todos });
 });
 
-router.patch("/todo/:id", auth, (req, res) => {
-  const user = (req as any).user;
-
-  if(!user) {
-    return res.status(400).json({
-      message: "You need to login"
-    });
-  };
-
-  const userDb = users.find(u => u.id === user.id);
-  if(!userDb) {
-    return res.status(404).json({
-      message: "No user found"
-    });
-  };
-
+router.patch("/todo/:id", auth, async (req: any, res) => {
   const id = parseInt(req.params?.id);
 
   if(!id) {
@@ -187,7 +164,9 @@ router.patch("/todo/:id", auth, (req, res) => {
     });
   }
 
-  const todoDb = todos.find(t => t.id === id);
+  const todoDb = await prisma.todo.findUnique({
+    where: { id }
+  });
 
   if(!todoDb) {
     return res.status(404).json({
@@ -195,18 +174,23 @@ router.patch("/todo/:id", auth, (req, res) => {
     })
   }
 
-  const todo = {
-  ...todoDb,
-  ...(title !== undefined && { title }),
-  ...(description !== undefined && { description }),
-};
+  const updated = await prisma.todo.update({
+    where: { id },
+    data: {
+      ...(title !== undefined && { title }),
+      ...(description !== undefined && { description })
+    }
+  });
 
-  todos[id] = todo;
+  res.json({
+    message: "Todo updated",
+    todo: updated
+  });
 });
 
 app.use("/api", router);
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log(`Server activated on port ${PORT}`);
